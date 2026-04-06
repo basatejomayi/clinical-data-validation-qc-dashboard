@@ -1,0 +1,11 @@
+domain,subject_id,event_date,site,lab_result,ae_term,medication,status
+DM,S001,2026-01-01,Site A,,,,Complete
+AE,S001,2026-01-05,Site A,,Headache,,Complete
+LB,S001,2026-01-06,Site A,90,,,Complete
+LB,S001,2026-01-06,Site A,90,,,Complete
+VS,S002,2026-01-07,Site B,,,,Incomplete
+CM,S002,2026-01-08,Site B,,,Aspirin,Complete
+AE,S003,2027-15-02,Site A,,Nausea,,Complete
+LB,S004,,Site C,,,,Incomplete
+MH,S005,2026-01-10,Site B,,,,Complete
+SC,S006,2026-01-11,Site B,,,,Complete
