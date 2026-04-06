@@ -1,0 +1,961 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Clinical Data Quality Workbench</title>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+  <style>
+    :root{
+      --bg:#f4f7fb;
+      --panel:#ffffff;
+      --panel-2:#f8fbff;
+      --text:#172033;
+      --muted:#667089;
+      --border:#dbe4f0;
+      --primary:#0f766e;
+      --primary-soft:#dff7f4;
+      --secondary:#2563eb;
+      --secondary-soft:#dbeafe;
+      --danger:#c2410c;
+      --danger-soft:#ffedd5;
+      --warn:#a16207;
+      --warn-soft:#fef9c3;
+      --success:#15803d;
+      --success-soft:#dcfce7;
+      --shadow:0 10px 30px rgba(23,32,51,.06);
+      --radius:18px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:Inter, ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      background:
+        radial-gradient(circle at top left, #eef7ff 0, transparent 28%),
+        radial-gradient(circle at top right, #ecfdf5 0, transparent 25%),
+        var(--bg);
+      color:var(--text);
+    }
+    .wrap{max-width:1280px;margin:0 auto;padding:28px 18px 42px}
+    .hero{
+      display:grid;grid-template-columns:1.35fr .95fr;gap:18px;margin-bottom:18px
+    }
+    .card{
+      background:var(--panel);
+      border:1px solid var(--border);
+      border-radius:var(--radius);
+      box-shadow:var(--shadow);
+    }
+    .hero-main{padding:26px 26px 22px}
+    .eyebrow{
+      display:inline-flex;align-items:center;gap:8px;
+      padding:8px 12px;border-radius:999px;
+      background:var(--primary-soft);color:var(--primary);
+      font-size:12px;font-weight:800;letter-spacing:.04em;text-transform:uppercase
+    }
+    .dot{width:8px;height:8px;border-radius:50%;background:var(--primary)}
+    h1{
+      margin:14px 0 10px;
+      font-size:36px;line-height:1.05;letter-spacing:-.04em
+    }
+    .sub{
+      color:var(--muted);font-size:15px;line-height:1.6;max-width:780px
+    }
+    .hero-points{
+      display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;margin-top:18px
+    }
+    .mini{
+      background:linear-gradient(180deg,#fbfdff 0%,#f7fbff 100%);
+      border:1px solid var(--border);border-radius:16px;padding:14px
+    }
+    .mini .label{font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.06em}
+    .mini .value{margin-top:8px;font-weight:800;font-size:16px;line-height:1.35}
+    .hero-side{padding:22px}
+    .workflow{
+      display:grid;gap:10px
+    }
+    .step{
+      display:flex;gap:12px;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--border)
+    }
+    .step:last-child{border-bottom:none}
+    .step-num{
+      width:28px;height:28px;border-radius:999px;background:var(--secondary-soft);color:var(--secondary);
+      display:flex;align-items:center;justify-content:center;font-weight:900;font-size:13px;flex:0 0 auto
+    }
+    .step-title{font-size:14px;font-weight:800}
+    .step-body{font-size:13px;color:var(--muted);line-height:1.5;margin-top:3px}
+    .toolbar{
+      display:grid;grid-template-columns:1.1fr .95fr;gap:18px;margin-bottom:18px
+    }
+    .panel{padding:20px}
+    .panel-head{display:flex;justify-content:space-between;align-items:flex-start;gap:14px;flex-wrap:wrap;margin-bottom:14px}
+    .panel-title{font-size:13px;color:var(--muted);font-weight:900;letter-spacing:.06em;text-transform:uppercase}
+    .panel-sub{font-size:13px;color:var(--muted);line-height:1.5}
+    .upload-box{
+      border:1.5px dashed #b7c7dc;border-radius:18px;background:linear-gradient(180deg,#fbfdff,#f6fbff);
+      padding:18px
+    }
+    .upload-row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+    .btn{
+      border:none;border-radius:12px;padding:12px 16px;font-weight:800;cursor:pointer;font-size:14px
+    }
+    .btn-primary{background:var(--primary);color:#fff}
+    .btn-secondary{background:#edf4ff;color:var(--secondary);border:1px solid #cfe0ff}
+    .btn-ghost{background:#fff;color:var(--text);border:1px solid var(--border)}
+    input[type=file]{display:none}
+    .file-chip{
+      display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--border);border-radius:999px;
+      padding:8px 12px;font-size:12px;color:var(--muted);font-weight:700
+    }
+    .mapping{
+      display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px
+    }
+    label{display:block;font-size:11px;color:var(--muted);font-weight:800;text-transform:uppercase;letter-spacing:.06em;margin-bottom:6px}
+    select,input[type=text], textarea{
+      width:100%;height:42px;border-radius:12px;border:1px solid var(--border);background:#fff;
+      padding:0 12px;font-size:14px;color:var(--text)
+    }
+    textarea{height:76px;padding:10px 12px;resize:vertical}
+    .helper{font-size:12px;color:var(--muted);line-height:1.5;margin-top:8px}
+    .status{
+      margin-top:12px;padding:12px 14px;border-radius:12px;font-size:13px;font-weight:700
+    }
+    .status.info{background:var(--secondary-soft);color:var(--secondary)}
+    .status.success{background:var(--success-soft);color:var(--success)}
+    .kpis{
+      display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:18px
+    }
+    .kpi{padding:18px}
+    .kpi .k-label{font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+    .kpi .k-value{font-size:34px;font-weight:900;letter-spacing:-.04em;line-height:1;margin-top:10px}
+    .kpi .k-sub{font-size:13px;color:var(--muted);margin-top:8px}
+    .danger{color:var(--danger)} .warn{color:var(--warn)} .success{color:var(--success)} .secondary{color:var(--secondary)}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}
+    .tab{
+      border:1px solid var(--border);background:#fff;color:var(--muted);padding:10px 14px;border-radius:12px;
+      font-size:13px;font-weight:800;cursor:pointer
+    }
+    .tab.active{background:var(--text);color:#fff;border-color:var(--text)}
+    .view{display:none}
+    .view.active{display:block}
+    .grid-2{display:grid;grid-template-columns:1.12fr .88fr;gap:18px}
+    .grid-2-eq{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+    .chart-wrap{height:280px}
+    .chart-wrap.sm{height:210px}
+    .chart-wrap.lg{height:320px}
+    .list{display:grid;gap:10px}
+    .row{
+      display:flex;justify-content:space-between;gap:12px;align-items:flex-start;
+      padding:12px 0;border-bottom:1px solid var(--border)
+    }
+    .row:last-child{border-bottom:none}
+    .name{font-size:14px;font-weight:800;line-height:1.4}
+    .meta{font-size:12px;color:var(--muted);line-height:1.45;margin-top:4px}
+    .count{font-size:15px;font-weight:900;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .badge{
+      display:inline-block;padding:4px 8px;border-radius:999px;font-size:11px;font-weight:900
+    }
+    .badge.fail{background:var(--danger-soft);color:var(--danger)}
+    .badge.warn{background:var(--warn-soft);color:var(--warn)}
+    .badge.pass{background:var(--success-soft);color:var(--success)}
+    .bars{display:grid;gap:12px}
+    .bar{
+      display:grid;grid-template-columns:160px 1fr 54px;gap:10px;align-items:center
+    }
+    .bar-label{font-size:13px;color:var(--muted);font-weight:800}
+    .track{height:12px;background:#edf2f9;border-radius:999px;overflow:hidden}
+    .fill{height:100%;border-radius:999px}
+    .bar-val{font-size:12px;color:var(--muted);font-family:ui-monospace,SFMono-Regular,Menlo,monospace;text-align:right;font-weight:800}
+    .insight{
+      background:linear-gradient(135deg,#f0fdf4 0%,#eff6ff 100%);
+      border:1px solid #dceee6;border-radius:18px;padding:18px
+    }
+    .insight .tag{font-size:11px;color:var(--primary);font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+    .insight .main{font-size:23px;font-weight:900;line-height:1.2;margin-top:8px}
+    .insight .body{font-size:13px;color:#334155;line-height:1.6;margin-top:8px}
+    .table-wrap{overflow:auto;border:1px solid var(--border);border-radius:16px}
+    table{width:100%;border-collapse:collapse;background:#fff}
+    th,td{padding:12px 14px;border-bottom:1px solid var(--border);text-align:left;font-size:13px}
+    th{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;background:#fbfdff}
+    tr:last-child td{border-bottom:none}
+    td.mono{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    .empty{
+      border:1px dashed var(--border);background:#fbfdff;color:var(--muted);padding:16px;border-radius:14px;font-size:13px
+    }
+    .footer{
+      display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:14px;margin-top:18px
+    }
+    .meta-card{
+      background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:16px;box-shadow:var(--shadow)
+    }
+    .meta-card .m-label{font-size:11px;color:var(--muted);font-weight:900;text-transform:uppercase;letter-spacing:.06em}
+    .meta-card .m-val{font-size:15px;font-weight:900;margin-top:8px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+    @media (max-width:1080px){
+      .hero,.toolbar,.grid-2,.grid-2-eq{grid-template-columns:1fr}
+      .kpis{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .footer{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .hero-points{grid-template-columns:1fr}
+    }
+    @media (max-width:680px){
+      .wrap{padding:18px 14px 34px}
+      h1{font-size:30px}
+      .mapping,.kpis,.footer{grid-template-columns:1fr}
+      .bar{grid-template-columns:104px 1fr 48px}
+      .upload-row{align-items:stretch}
+      .btn{width:100%}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="card hero-main">
+        <div class="eyebrow"><span class="dot"></span> Clinical Data Quality Tool</div>
+        <h1>Clinical Data Quality Workbench</h1>
+        <div class="sub">
+          Upload your own CSV, map your columns, and get a fast quality review before analysis. This workbench is designed for healthcare, research, and structured operational data where missingness, duplicates, and bad dates can quietly damage downstream reporting.
+        </div>
+        <div class="hero-points">
+          <div class="mini">
+            <div class="label">Useful for</div>
+            <div class="value">Clinical analysts, SAS programmers, research teams, data reviewers</div>
+          </div>
+          <div class="mini">
+            <div class="label">What it checks</div>
+            <div class="value">Missing values, duplicate keys, invalid dates, row completeness, issue hotspots</div>
+          </div>
+          <div class="mini">
+            <div class="label">Main goal</div>
+            <div class="value">Help users answer: “Is this data clean enough to trust?”</div>
+          </div>
+        </div>
+      </div>
+      </section>
+
+    <section class="toolbar">
+      <div class="card panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Step 1 · Upload your file</div>
+            <div class="panel-sub">Use your own CSV. The demo button loads a sample dataset so users can try the tool instantly.</div>
+          </div>
+        </div>
+        <div class="upload-box">
+          <div class="upload-row">
+            <label for="csvFile" class="btn btn-primary" style="display:inline-flex;align-items:center;justify-content:center">Choose CSV</label>
+            <input id="csvFile" type="file" accept=".csv" />
+            <button class="btn btn-secondary" id="demoBtn" type="button">Load demo data</button>
+            <button class="btn btn-ghost" id="resetBtn" type="button">Reset everything</button>
+          </div>
+          <div style="margin-top:12px">
+            <span class="file-chip" id="fileChip">No file loaded yet</span>
+          </div>
+          <div class="helper">CSV works best for this prototype. After upload, map the columns below and click <strong>Run checks</strong>.</div>
+        </div>
+      </div>
+
+      <div class="card panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Step 2 · Map your columns</div>
+            <div class="panel-sub">These settings tell the tool how to interpret the uploaded file.</div>
+          </div>
+        </div>
+        <div class="mapping">
+          <div>
+            <label for="domainCol">Dataset / domain column</label>
+            <select id="domainCol"></select>
+          </div>
+          <div>
+            <label for="idCol">Subject / record ID column</label>
+            <select id="idCol"></select>
+          </div>
+          <div>
+            <label for="dateCol">Date column</label>
+            <select id="dateCol"></select>
+          </div>
+          <div>
+            <label for="groupCol">Site / group column</label>
+            <select id="groupCol"></select>
+          </div>
+          <div>
+            <label for="requiredCols">Required columns</label>
+            <textarea id="requiredCols" placeholder="Example: subject_id, domain, event_date"></textarea>
+          </div>
+          <div>
+            <label for="duplicateCols">Duplicate key columns</label>
+            <textarea id="duplicateCols" placeholder="Example: subject_id, domain, event_date"></textarea>
+          </div>
+        </div>
+        <div style="margin-top:12px;display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn btn-primary" id="runBtn" type="button">Run checks</button>
+        </div>
+        <div class="status info" id="statusBox">Waiting for data. Upload a CSV or load demo data to begin.</div>
+      </div>
+    </section>
+
+    <section class="kpis">
+      <div class="card kpi">
+        <div class="k-label">QC Score</div>
+        <div class="k-value danger" id="qcScore">—</div>
+        <div class="k-sub" id="qcScoreSub">Composite view of overall data cleanliness</div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">Rows with issues</div>
+        <div class="k-value danger" id="issueRows">—</div>
+        <div class="k-sub" id="issueRowsSub">Rows containing at least one flagged problem</div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">Missing values</div>
+        <div class="k-value warn" id="missingCount">—</div>
+        <div class="k-sub" id="missingCountSub">Required-field gaps and overall empty cells</div>
+      </div>
+      <div class="card kpi">
+        <div class="k-label">Duplicate rows</div>
+        <div class="k-value secondary" id="dupeCount">—</div>
+        <div class="k-sub" id="dupeCountSub">Detected using the chosen duplicate keys</div>
+      </div>
+    </section>
+
+    <section class="tabs">
+      <button class="tab active" data-view="overview">Overview</button>
+      <button class="tab" data-view="issues">Issue Breakdown</button>
+      <button class="tab" data-view="domains">Domain Review</button>
+      <button class="tab" data-view="preview">Data Preview</button>
+    </section>
+
+    <section class="view active" id="view-overview">
+      <div class="grid-2">
+        <div class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Overview insight</div>
+              <div class="panel-sub">A plain-English summary of what the uploaded file is telling you.</div>
+            </div>
+          </div>
+          <div class="insight">
+            <div class="tag">What is happening</div>
+            <div class="main" id="insightMain">Upload a file to generate a quality summary.</div>
+            <div class="body" id="insightBody">Once a file is loaded, this section will explain where the biggest quality risks are and what should be reviewed first.</div>
+          </div>
+        </div>
+        <div class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Rows by domain</div>
+              <div class="panel-sub">Shows where most of the file volume is concentrated.</div>
+            </div>
+          </div>
+          <div class="chart-wrap sm"><canvas id="domainChart"></canvas></div>
+        </div>
+      </div>
+
+      <div style="height:18px"></div>
+
+      <div class="grid-2">
+        <div class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Top columns with missingness</div>
+              <div class="panel-sub">The fastest way to see which columns are creating the most data quality drag.</div>
+            </div>
+          </div>
+          <div class="bars" id="missingBars"></div>
+        </div>
+        <div class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Issue type mix</div>
+              <div class="panel-sub">Breaks down the main issue categories found in the file.</div>
+            </div>
+          </div>
+          <div class="chart-wrap sm"><canvas id="issueChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-issues">
+      <div class="grid-2">
+        <div class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Issue summary</div>
+              <div class="panel-sub">Counts and explanation of the problems detected from the configured checks.</div>
+            </div>
+          </div>
+          <div class="list" id="issueList"></div>
+        </div>
+        <div class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Duplicate key hotspots</div>
+              <div class="panel-sub">Useful when repeated records hide behind a few high-frequency key patterns.</div>
+            </div>
+          </div>
+          <div class="list" id="dupeList"></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-domains">
+      <div class="grid-2">
+        <div class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Domain quality table</div>
+              <div class="panel-sub">A compact view of completeness and issue burden grouped by domain.</div>
+            </div>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Domain</th>
+                  <th>Rows</th>
+                  <th>Rows with issues</th>
+                  <th>Missing %</th>
+                  <th>Status</th>
+                </tr>
+              </thead>
+              <tbody id="domainTable"></tbody>
+            </table>
+          </div>
+        </div>
+        <div class="card panel">
+          <div class="panel-head">
+            <div>
+              <div class="panel-title">Quality score by domain</div>
+              <div class="panel-sub">Lets users quickly find the dirtiest sections of the file.</div>
+            </div>
+          </div>
+          <div class="chart-wrap"><canvas id="qualityChart"></canvas></div>
+        </div>
+      </div>
+    </section>
+
+    <section class="view" id="view-preview">
+      <div class="card panel">
+        <div class="panel-head">
+          <div>
+            <div class="panel-title">Data preview</div>
+            <div class="panel-sub">The first few rows of the uploaded file, so users can confirm the structure looks right.</div>
+          </div>
+        </div>
+        <div class="table-wrap">
+          <table id="previewTable"></table>
+        </div>
+      </div>
+    </section>
+
+    <section class="footer">
+      <div class="meta-card">
+        <div class="m-label">Tool mode</div>
+        <div class="m-val">Uploadable prototype</div>
+      </div>
+      <div class="meta-card">
+        <div class="m-label">File loaded</div>
+        <div class="m-val" id="metaFile">None</div>
+      </div>
+      <div class="meta-card">
+        <div class="m-label">Rows scanned</div>
+        <div class="m-val" id="metaRows">0</div>
+      </div>
+      <div class="meta-card">
+        <div class="m-label">Columns detected</div>
+        <div class="m-val" id="metaCols">0</div>
+      </div>
+      <div class="meta-card">
+        <div class="m-label">What this is for</div>
+        <div class="m-val" style="font-family:inherit;font-size:13px;line-height:1.5">Pre-analysis data quality review</div>
+      </div>
+    </section>
+  </div>
+
+<script>
+const demoCsv = `domain,subject_id,event_date,site,lab_result,ae_term,medication,status
+DM,S001,2026-01-03,Site A,85,,Metformin,Complete
+AE,S001,2026-01-06,Site A,,Headache,,Complete
+LB,S001,2026-01-07,Site A,92,,,Complete
+LB,S001,2026-01-07,Site A,92,,,Complete
+VS,S002,2026-01-09,Site B,,"",,Incomplete
+CM,S002,2026-01-10,Site B,,,Aspirin,Complete
+AE,S003,2027-05-02,Site A,,Nausea,,Complete
+LB,S004,,Site C,,,,Incomplete
+MH,S005,2026-01-13,Site B,,,,Complete
+SC,S006,2026-01-15,Site B,,,,Complete
+AE,S007,2026-01-16,Site A,,Dizziness,,Complete
+CM,S007,2026-01-18,Site A,,,Ibuprofen,Complete
+LB,S008,2026-01-20,Site C,77,,,Complete
+VS,S008,2026-01-20,Site C,,,,Complete
+DM,,2026-01-22,Site C,,,,Incomplete`;
+
+let rows = [];
+let headers = [];
+let metrics = null;
+let charts = {domain:null, issue:null, quality:null};
+
+function parseCsv(text){
+  const lines = text.replace(/\r/g,'').trim().split('\n').filter(Boolean);
+  if(!lines.length) return {headers:[], rows:[]};
+  const parseLine = (line) => {
+    const out = [];
+    let cur = '', inQuotes = false;
+    for(let i=0;i<line.length;i++){
+      const ch = line[i];
+      if(ch === '"' ){
+        if(inQuotes && line[i+1] === '"'){ cur += '"'; i++; }
+        else inQuotes = !inQuotes;
+      } else if(ch === ',' && !inQuotes){
+        out.push(cur); cur = '';
+      } else cur += ch;
+    }
+    out.push(cur);
+    return out.map(v => v.trim());
+  };
+  const headers = parseLine(lines[0]);
+  const rows = lines.slice(1).map(line => {
+    const vals = parseLine(line);
+    const obj = {};
+    headers.forEach((h,i)=> obj[h] = vals[i] ?? '');
+    return obj;
+  });
+  return {headers, rows};
+}
+
+function setStatus(text, kind='info'){
+  const box = document.getElementById('statusBox');
+  box.className = `status ${kind}`;
+  box.textContent = text;
+}
+
+function populateSelect(id, opts){
+  const el = document.getElementById(id);
+  el.innerHTML = `<option value="">Not selected</option>` + opts.map(h => `<option value="${escapeHtml(h)}">${escapeHtml(h)}</option>`).join('');
+}
+
+function autoMap(){
+  const lower = headers.map(h => h.toLowerCase());
+  const find = (cands) => headers[lower.findIndex(h => cands.some(c => h.includes(c)))];
+  document.getElementById('domainCol').value = find(['domain','dataset','form']) || '';
+  document.getElementById('idCol').value = find(['subject','usubjid','patient','record_id','id']) || '';
+  document.getElementById('dateCol').value = find(['date','dtc']) || '';
+  document.getElementById('groupCol').value = find(['site','center','group']) || '';
+  const req = [document.getElementById('idCol').value, document.getElementById('domainCol').value, document.getElementById('dateCol').value].filter(Boolean);
+  document.getElementById('requiredCols').value = req.join(', ');
+  document.getElementById('duplicateCols').value = req.join(', ');
+}
+
+function loadData(name, text){
+  const parsed = parseCsv(text);
+  rows = parsed.rows;
+  headers = parsed.headers;
+  ['domainCol','idCol','dateCol','groupCol'].forEach(id => populateSelect(id, headers));
+  autoMap();
+  document.getElementById('fileChip').textContent = `${name} loaded`;
+  document.getElementById('metaFile').textContent = name;
+  document.getElementById('metaRows').textContent = rows.length.toLocaleString();
+  document.getElementById('metaCols').textContent = headers.length.toString();
+  setStatus(`Loaded ${rows.length} rows and ${headers.length} columns. Map columns if needed, then click Run checks.`, 'success');
+  renderPreview();
+}
+
+function empty(str){ return str == null || String(str).trim() === ''; }
+
+function computeMetrics(){
+  const domainCol = document.getElementById('domainCol').value;
+  const idCol = document.getElementById('idCol').value;
+  const dateCol = document.getElementById('dateCol').value;
+  const groupCol = document.getElementById('groupCol').value;
+  const requiredCols = document.getElementById('requiredCols').value.split(',').map(s=>s.trim()).filter(Boolean);
+  const duplicateCols = document.getElementById('duplicateCols').value.split(',').map(s=>s.trim()).filter(Boolean);
+
+  let totalMissing = 0;
+  let requiredMissing = 0;
+  let invalidDates = 0;
+  let issueRows = 0;
+  const missingByCol = Object.fromEntries(headers.map(h=>[h,0]));
+  const domainStats = {};
+  const issueCounts = {requiredMissing:0, invalidDates:0, duplicates:0};
+  const dupeMap = {};
+
+  rows.forEach((row, idx) => {
+    let rowHasIssue = false;
+    headers.forEach(h => {
+      if(empty(row[h])) {
+        totalMissing++;
+        missingByCol[h] += 1;
+      }
+    });
+
+    requiredCols.forEach(h => {
+      if(h && empty(row[h])) {
+        requiredMissing++;
+        rowHasIssue = true;
+      }
+    });
+
+    if(dateCol){
+      const val = row[dateCol];
+      if(!empty(val)){
+        const d = new Date(val);
+        if(String(d) === 'Invalid Date' || d.getFullYear() > 2100 || d.getFullYear() < 1900){
+          invalidDates++;
+          rowHasIssue = true;
+        }
+      }
+    }
+
+    const domainVal = domainCol ? (row[domainCol] || 'Unassigned') : 'All data';
+    if(!domainStats[domainVal]){
+      domainStats[domainVal] = {rows:0, issueRows:0, missingCells:0};
+    }
+    domainStats[domainVal].rows += 1;
+
+    const rowMissing = headers.reduce((n,h)=> n + (empty(row[h]) ? 1 : 0), 0);
+    domainStats[domainVal].missingCells += rowMissing;
+
+    if(duplicateCols.length){
+      const key = duplicateCols.map(h => row[h] ?? '').join('||');
+      if(!dupeMap[key]) dupeMap[key] = [];
+      dupeMap[key].push(idx);
+    }
+
+    if(rowHasIssue) {
+      issueRows++;
+      domainStats[domainVal].issueRows += 1;
+    }
+  });
+
+  const duplicateGroups = Object.entries(dupeMap)
+    .filter(([key, arr]) => key.replace(/\|/g,'').trim() !== '' && arr.length > 1)
+    .map(([key, arr]) => ({key, count:arr.length}));
+
+  issueCounts.requiredMissing = requiredMissing;
+  issueCounts.invalidDates = invalidDates;
+  issueCounts.duplicates = duplicateGroups.reduce((a,b)=>a+b.count,0);
+
+  // Add duplicate rows to issue row set estimate
+  issueRows += duplicateGroups.reduce((a,b)=>a + Math.max(0, b.count - 1), 0);
+  issueRows = Math.min(issueRows, rows.length);
+
+  const totalCells = rows.length * Math.max(headers.length,1);
+  const weightedBurden = (
+    ((requiredMissing + totalMissing * 0.25) / Math.max(totalCells,1)) * 45 +
+    (issueCounts.duplicates / Math.max(rows.length,1)) * 30 +
+    (invalidDates / Math.max(rows.length,1)) * 25
+  ) * 100;
+  const qcScore = Math.max(0, Math.min(100, 100 - weightedBurden)).toFixed(1);
+
+  const topMissingColumns = Object.entries(missingByCol)
+    .sort((a,b)=>b[1]-a[1])
+    .slice(0,6)
+    .map(([col,count]) => ({
+      col,
+      count,
+      pct: Number((count / Math.max(rows.length,1) * 100).toFixed(1))
+    }));
+
+  const domainArray = Object.entries(domainStats).map(([domain, stat]) => {
+    const missingPct = Number((stat.missingCells / Math.max(stat.rows * Math.max(headers.length,1),1) * 100).toFixed(1));
+    const issuePct = stat.issueRows / Math.max(stat.rows,1);
+    const score = Math.max(0, Math.min(100, 100 - (missingPct * 2.1 + issuePct * 34))).toFixed(1);
+    return {
+      domain,
+      rows: stat.rows,
+      issueRows: stat.issueRows,
+      missingPct,
+      score: Number(score),
+      status: Number(score) >= 85 ? 'pass' : Number(score) >= 75 ? 'warn' : 'fail'
+    };
+  }).sort((a,b)=>b.rows-a.rows);
+
+  metrics = {
+    domainCol, idCol, dateCol, groupCol, requiredCols, duplicateCols,
+    totalRows: rows.length,
+    totalCols: headers.length,
+    totalMissing,
+    requiredMissing,
+    invalidDates,
+    issueRows,
+    qcScore: Number(qcScore),
+    duplicateGroups,
+    issueCounts,
+    topMissingColumns,
+    domains: domainArray
+  };
+}
+
+function classForScore(score){
+  if(score >= 85) return 'success';
+  if(score >= 75) return 'warn';
+  return 'danger';
+}
+
+function renderKpis(){
+  document.getElementById('qcScore').textContent = metrics.qcScore.toFixed(1) + '%';
+  document.getElementById('qcScore').className = `k-value ${classForScore(metrics.qcScore)}`;
+  document.getElementById('qcScoreSub').textContent = metrics.qcScore >= 85 ? 'Healthy quality state' : metrics.qcScore >= 75 ? 'Some review needed' : 'Quality risk is elevated';
+
+  document.getElementById('issueRows').textContent = metrics.issueRows.toLocaleString();
+  document.getElementById('issueRows').className = `k-value ${metrics.issueRows > 0 ? 'danger' : 'success'}`;
+  document.getElementById('issueRowsSub').textContent = `${Math.round(metrics.issueRows / Math.max(metrics.totalRows,1) * 100)}% of rows flagged`;
+
+  document.getElementById('missingCount').textContent = metrics.totalMissing.toLocaleString();
+  document.getElementById('missingCount').className = `k-value ${metrics.totalMissing > metrics.totalRows ? 'warn' : 'secondary'}`;
+  document.getElementById('missingCountSub').textContent = `${metrics.requiredMissing.toLocaleString()} required-field misses`;
+
+  const dupes = metrics.issueCounts.duplicates;
+  document.getElementById('dupeCount').textContent = dupes.toLocaleString();
+  document.getElementById('dupeCount').className = `k-value ${dupes > 0 ? 'secondary' : 'success'}`;
+  document.getElementById('dupeCountSub').textContent = `${metrics.duplicateGroups.length} duplicate key groups`;
+}
+
+function renderInsight(){
+  const worstDomain = metrics.domains.slice().sort((a,b)=>a.score-b.score)[0];
+  const worstCol = metrics.topMissingColumns[0];
+  let main = `This file has a QC score of ${metrics.qcScore.toFixed(1)}%.`;
+  let body = `The workbench found ${metrics.issueRows.toLocaleString()} rows with at least one issue, ${metrics.totalMissing.toLocaleString()} missing cells, and ${metrics.issueCounts.duplicates.toLocaleString()} duplicate rows based on the selected keys.`;
+  if(worstDomain){
+    body += ` The weakest area appears to be ${worstDomain.domain}, where ${worstDomain.issueRows} rows were flagged and the domain quality score is ${worstDomain.score.toFixed(1)}.`;
+  }
+  if(worstCol){
+    body += ` The column most affected by missingness is ${worstCol.col}, with ${worstCol.count} empty values.`;
+  }
+  document.getElementById('insightMain').textContent = main;
+  document.getElementById('insightBody').textContent = body;
+}
+
+function renderMissingBars(){
+  const box = document.getElementById('missingBars');
+  if(!metrics.topMissingColumns.length){
+    box.innerHTML = `<div class="empty">No missingness summary available.</div>`;
+    return;
+  }
+  box.innerHTML = metrics.topMissingColumns.map(item => {
+    const pct = Math.min(item.pct, 100);
+    const color = item.pct > 25 ? 'var(--danger)' : item.pct > 10 ? 'var(--warn)' : 'var(--secondary)';
+    return `
+      <div class="bar">
+        <div class="bar-label">${escapeHtml(item.col)}</div>
+        <div class="track"><div class="fill" style="width:${pct}%;background:${color}"></div></div>
+        <div class="bar-val">${item.pct}%</div>
+      </div>
+    `;
+  }).join('');
+}
+
+function renderIssueList(){
+  const items = [
+    {name:'Required field misses', meta:'Rows missing one or more required values', count:metrics.requiredMissing, cls: metrics.requiredMissing ? 'fail' : 'pass'},
+    {name:'Invalid or suspicious dates', meta:'Date values that could not be parsed or looked abnormal', count:metrics.invalidDates, cls: metrics.invalidDates ? 'warn' : 'pass'},
+    {name:'Duplicate rows', meta:'Rows repeated based on the selected duplicate keys', count:metrics.issueCounts.duplicates, cls: metrics.issueCounts.duplicates ? 'warn' : 'pass'},
+    {name:'Total empty cells', meta:'All missing cells across the whole file', count:metrics.totalMissing, cls: metrics.totalMissing ? 'warn' : 'pass'}
+  ];
+  document.getElementById('issueList').innerHTML = items.map(item => `
+    <div class="row">
+      <div>
+        <div class="name">${item.name}</div>
+        <div class="meta">${item.meta}</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:8px">
+        <div class="count">${item.count.toLocaleString()}</div>
+        <span class="badge ${item.cls}">${item.cls.toUpperCase()}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderDupeList(){
+  const box = document.getElementById('dupeList');
+  if(!metrics.duplicateGroups.length){
+    box.innerHTML = `<div class="empty">No duplicate key groups were detected with the current duplicate-key configuration.</div>`;
+    return;
+  }
+  box.innerHTML = metrics.duplicateGroups.slice(0,8).map(item => `
+    <div class="row">
+      <div>
+        <div class="name">${escapeHtml(item.key)}</div>
+        <div class="meta">Duplicate key pattern</div>
+      </div>
+      <div class="count">${item.count}</div>
+    </div>
+  `).join('');
+}
+
+function renderDomainTable(){
+  const box = document.getElementById('domainTable');
+  if(!metrics.domains.length){
+    box.innerHTML = `<tr><td colspan="5"><div class="empty">No domain breakdown available.</div></td></tr>`;
+    return;
+  }
+  box.innerHTML = metrics.domains.map(d => `
+    <tr>
+      <td class="mono">${escapeHtml(d.domain)}</td>
+      <td class="mono">${d.rows.toLocaleString()}</td>
+      <td class="mono">${d.issueRows.toLocaleString()}</td>
+      <td class="mono">${d.missingPct}%</td>
+      <td><span class="badge ${d.status}">${d.status.toUpperCase()}</span></td>
+    </tr>
+  `).join('');
+}
+
+function renderPreview(){
+  const table = document.getElementById('previewTable');
+  if(!headers.length || !rows.length){
+    table.innerHTML = `<tr><td><div class="empty">No preview available yet.</div></td></tr>`;
+    return;
+  }
+  const head = `<thead><tr>${headers.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>`;
+  const body = `<tbody>${rows.slice(0,8).map(r=>`<tr>${headers.map(h=>`<td>${escapeHtml(r[h] ?? '')}</td>`).join('')}</tr>`).join('')}</tbody>`;
+  table.innerHTML = head + body;
+}
+
+function destroyChart(name){
+  if(charts[name]) { charts[name].destroy(); charts[name] = null; }
+}
+
+function renderCharts(){
+  destroyChart('domain');
+  destroyChart('issue');
+  destroyChart('quality');
+
+  charts.domain = new Chart(document.getElementById('domainChart'), {
+    type:'bar',
+    data:{
+      labels: metrics.domains.map(d=>d.domain),
+      datasets:[{
+        data: metrics.domains.map(d=>d.rows),
+        backgroundColor:'#0f766e',
+        borderRadius:8,
+        borderSkipped:false
+      }]
+    },
+    options:{
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#667089'}},
+        y:{grid:{color:'#e6edf6'},ticks:{color:'#667089'}}
+      }
+    }
+  });
+
+  charts.issue = new Chart(document.getElementById('issueChart'), {
+    type:'doughnut',
+    data:{
+      labels:['Required misses','Invalid dates','Duplicate rows'],
+      datasets:[{
+        data:[metrics.requiredMissing, metrics.invalidDates, metrics.issueCounts.duplicates],
+        backgroundColor:['#c2410c','#a16207','#2563eb'],
+        borderWidth:0
+      }]
+    },
+    options:{
+      maintainAspectRatio:false,
+      plugins:{legend:{position:'bottom', labels:{boxWidth:10,color:'#667089'}}},
+      cutout:'64%'
+    }
+  });
+
+  charts.quality = new Chart(document.getElementById('qualityChart'), {
+    type:'bar',
+    data:{
+      labels: metrics.domains.map(d=>d.domain),
+      datasets:[{
+        data: metrics.domains.map(d=>d.score),
+        backgroundColor: metrics.domains.map(d => d.score >= 85 ? '#15803d' : d.score >= 75 ? '#a16207' : '#c2410c'),
+        borderRadius:8,
+        borderSkipped:false
+      }]
+    },
+    options:{
+      maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{display:false},ticks:{color:'#667089'}},
+        y:{min:0,max:100,grid:{color:'#e6edf6'},ticks:{color:'#667089',callback:v=>v+'%'}}
+      }
+    }
+  });
+}
+
+function runChecks(){
+  if(!rows.length){
+    setStatus('Please upload a CSV or load the demo data first.', 'info');
+    return;
+  }
+  computeMetrics();
+  renderKpis();
+  renderInsight();
+  renderMissingBars();
+  renderIssueList();
+  renderDupeList();
+  renderDomainTable();
+  renderPreview();
+  renderCharts();
+  setStatus(`Checks completed. Scanned ${metrics.totalRows.toLocaleString()} rows and ${metrics.totalCols} columns.`, 'success');
+}
+
+function resetEverything(){
+  rows = [];
+  headers = [];
+  metrics = null;
+  ['domain','issue','quality'].forEach(destroyChart);
+  document.getElementById('fileChip').textContent = 'No file loaded yet';
+  document.getElementById('metaFile').textContent = 'None';
+  document.getElementById('metaRows').textContent = '0';
+  document.getElementById('metaCols').textContent = '0';
+  ['domainCol','idCol','dateCol','groupCol'].forEach(id => document.getElementById(id).innerHTML = '<option value="">Not selected</option>');
+  document.getElementById('requiredCols').value = '';
+  document.getElementById('duplicateCols').value = '';
+  document.getElementById('qcScore').textContent = '—';
+  document.getElementById('issueRows').textContent = '—';
+  document.getElementById('missingCount').textContent = '—';
+  document.getElementById('dupeCount').textContent = '—';
+  document.getElementById('insightMain').textContent = 'Upload a file to generate a quality summary.';
+  document.getElementById('insightBody').textContent = 'Once a file is loaded, this section will explain where the biggest quality risks are and what should be reviewed first.';
+  document.getElementById('missingBars').innerHTML = '<div class="empty">No missingness summary yet.</div>';
+  document.getElementById('issueList').innerHTML = '<div class="empty">No issue breakdown yet.</div>';
+  document.getElementById('dupeList').innerHTML = '<div class="empty">No duplicate summary yet.</div>';
+  document.getElementById('domainTable').innerHTML = '<tr><td colspan="5"><div class="empty">No domain breakdown yet.</div></td></tr>';
+  document.getElementById('previewTable').innerHTML = '<tr><td><div class="empty">No preview available yet.</div></td></tr>';
+  setStatus('Waiting for data. Upload a CSV or load demo data to begin.', 'info');
+}
+
+function escapeHtml(value){
+  return String(value)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'","&#39;");
+}
+
+document.getElementById('csvFile').addEventListener('change', (e) => {
+  const file = e.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => loadData(file.name, reader.result);
+  reader.readAsText(file);
+});
+
+document.getElementById('demoBtn').addEventListener('click', () => loadData('demo_clinical_data.csv', demoCsv));
+document.getElementById('runBtn').addEventListener('click', runChecks);
+document.getElementById('resetBtn').addEventListener('click', () => {
+  document.getElementById('csvFile').value = '';
+  resetEverything();
+});
+
+document.querySelectorAll('.tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(`view-${tab.dataset.view}`).classList.add('active');
+  });
+});
+
+resetEverything();
+</script>
+</body>
+</html>
